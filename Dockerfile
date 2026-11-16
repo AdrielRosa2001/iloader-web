@@ -13,14 +13,16 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
  && cp target/release/iloader-server /iloader-server
 
 # --- web UI ------------------------------------------------------------------
-FROM oven/bun:1.4.4 AS web
+# Node instead of bun: bun needs SSE4.2, which some VMs (QEMU "kvm64"/
+# "qemu64" CPU types) do not expose.
+FROM node:24-bookworm-slim AS web
 WORKDIR /app
-COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
 COPY index.html tsconfig.json tsconfig.node.json vite.config.ts ./
 COPY public public
 COPY src src
-RUN bun run build
+RUN npm run build
 
 # --- runtime -----------------------------------------------------------------
 FROM debian:bookworm-slim

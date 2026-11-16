@@ -28,7 +28,7 @@ Dá para compilar em outra máquina x86_64 e copiar `target/release/iloader-serv
 
 ## Docker (recomendado)
 
-Requisitos no servidor: Docker com Compose e `usbmuxd` instalado no host (`sudo apt install usbmuxd`). Não precisa de Rust nem de bun: tudo compila dentro da imagem.
+Requisitos no servidor: Docker com Compose e `usbmuxd` instalado no host (`sudo apt install usbmuxd`). Não precisa de Rust nem de Node: tudo compila dentro da imagem. A imagem usa Node, e não bun, no build da interface porque o bun exige SSE4.2, que CPUs virtuais genéricas (QEMU `kvm64`/`qemu64`, padrão em alguns Proxmox) não expõem.
 
 ```sh
 docker compose up -d --build
