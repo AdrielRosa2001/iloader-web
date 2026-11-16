@@ -18,7 +18,19 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+
+    /* Web build: Tauri modules are replaced by src/platform (see vite.config.ts) */
+    "paths": {
+      "@tauri-apps/api/core": ["./src/platform/core.ts"],
+      "@tauri-apps/api/event": ["./src/platform/event.ts"],
+      "@tauri-apps/api/app": ["./src/platform/app.ts"],
+      "@tauri-apps/plugin-dialog": ["./src/platform/dialog.ts"],
+      "@tauri-apps/plugin-opener": ["./src/platform/opener.ts"],
+      "@tauri-apps/plugin-store": ["./src/platform/store.ts"],
+      "@tauri-apps/plugin-updater": ["./src/platform/updater.ts"],
+      "@tauri-apps/plugin-process": ["./src/platform/process.ts"]
+    }
   },
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]

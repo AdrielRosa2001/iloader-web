@@ -283,5 +283,19 @@
     "updating": "Updating...",
     "downloaded_restarting": "Update downloaded! Restarting app...",
     "failed_download": "Failed to download update: {{error}}"
+  },
+  "web": {
+    "uploading": "Uploading {{name}}… {{percent}}%",
+    "upload_failed": "Upload failed: {{error}}",
+    "server_login_title": "Connect to the server",
+    "server_login_hint": "Enter the access token of this iloader server (the access_token file in its data directory).",
+    "token_placeholder": "Access token",
+    "connect": "Connect",
+    "invalid_token": "Invalid access token.",
+    "too_many_attempts": "Too many failed attempts. Try again in a few minutes.",
+    "server_unreachable": "Unable to reach the server.",
+    "connecting": "Connecting to the server…",
+    "disconnected": "Disconnected from the server. Reconnecting…",
+    "logout": "Disconnect from server"
   }
 }

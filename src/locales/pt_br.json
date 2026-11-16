@@ -282,5 +282,19 @@
     "updating": "Atualizando...",
     "downloaded_restarting": "Nova versão instalada! Reiniciando iLoader...",
     "failed_download": "Instalação foi falha: {{error}}"
+  },
+  "web": {
+    "uploading": "Enviando {{name}}… {{percent}}%",
+    "upload_failed": "Falha no envio: {{error}}",
+    "server_login_title": "Conectar ao servidor",
+    "server_login_hint": "Digite o token de acesso deste servidor iloader (o arquivo access_token na pasta de dados dele).",
+    "token_placeholder": "Token de acesso",
+    "connect": "Conectar",
+    "invalid_token": "Token de acesso inválido.",
+    "too_many_attempts": "Muitas tentativas falhas. Tente de novo em alguns minutos.",
+    "server_unreachable": "Não foi possível acessar o servidor.",
+    "connecting": "Conectando ao servidor…",
+    "disconnected": "Desconectado do servidor. Reconectando…",
+    "logout": "Desconectar do servidor"
   }
 }
