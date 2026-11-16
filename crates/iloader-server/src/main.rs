@@ -235,7 +235,9 @@ async fn main() {
             config.static_dir.display()
         );
     }
-    if !config.bind.ip().is_loopback() {
+    // inside a container the port is published (and restricted) by Docker
+    let in_container = std::env::var_os("ILOADER_IN_CONTAINER").is_some();
+    if !config.bind.ip().is_loopback() && !in_container {
         tracing::warn!(
             "Listening on {}, reachable from the network. Make sure it is behind TLS \
              (reverse proxy) or only reachable through an SSH tunnel.",

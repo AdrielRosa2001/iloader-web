@@ -1,0 +1,79 @@
+# Headless iloader with Docker Compose.
+#
+#   docker compose up -d --build
+#   docker compose exec iloader cat /data/access_token   # access token
+#
+# The iPhone stays managed by the host's usbmuxd (apt install usbmuxd).
+# The host creates/removes /run/usbmuxd as the phone is plugged/unplugged, so
+# instead of bind-mounting that socket file (which would go stale) a tiny
+# sidecar watches the host's /run read-only and bridges usbmuxd over TCP on an
+# internal network. The iloader container gets neither USB nor host paths.
+
+name: iloader
+
+services:
+  iloader:
+    build: .
+    image: iloader-web:latest
+    restart: unless-stopped
+    depends_on:
+      - usbmuxd-bridge
+    ports:
+      # Published on the host loopback only: use an SSH tunnel or a TLS
+      # reverse proxy (see README-SERVER.md). Change ILOADER_PORT in .env.
+      - "${ILOADER_HOST_BIND:-127.0.0.1}:${ILOADER_PORT:-8095}:8080"
+    environment:
+      USBMUXD_SOCKET_ADDRESS: "172.30.57.10:27015"
+      ILOADER_COOKIE_SECURE: "${ILOADER_COOKIE_SECURE:-0}"
+      ILOADER_ALLOWED_ORIGINS: "${ILOADER_ALLOWED_ORIGINS:-}"
+      ILOADER_MAX_UPLOAD_MB: "${ILOADER_MAX_UPLOAD_MB:-2048}"
+      ILOADER_UI_LOG_LEVEL: "${ILOADER_UI_LOG_LEVEL:-debug}"
+      # Optional: enable "save credentials" with a key file mounted below.
+      # ILOADER_SECRET_KEY_FILE: /run/secrets/iloader_key
+    volumes:
+      - iloader-data:/data
+      - iloader-cache:/cache
+    networks:
+      - default
+      - usbmux
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1g
+
+  usbmuxd-bridge:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM alpine:3.22
+        RUN apk add --no-cache socat
+    image: iloader-usbmuxd-bridge:latest
+    restart: unless-stopped
+    # nobody: can use the world-writable usbmuxd socket, nothing else in /run
+    user: "65534:65534"
+    command: >-
+      socat -d TCP-LISTEN:27015,fork,reuseaddr UNIX-CONNECT:/host-run/usbmuxd
+    volumes:
+      - /run:/host-run:ro
+    networks:
+      usbmux:
+        ipv4_address: 172.30.57.10
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 64m
+
+networks:
+  usbmux:
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.30.57.0/24
+
+volumes:
+  iloader-data:
+  iloader-cache:
