@@ -27,4 +27,6 @@ keys
 *.mobileprovision
 
 dockerfile
+PLAN.md
+
 /target
