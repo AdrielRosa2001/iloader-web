@@ -58,14 +58,22 @@ pub fn write_private_file(path: &Path, data: &[u8]) -> std::io::Result<()> {
     })
 }
 
-/// Rejects keys that could escape the storage directory.
+/// Rejects keys that could escape the storage directory. Keys may be nested
+/// with `/` (isideload stores certificate keys as `<email hash>/key`), but
+/// every segment must be a plain name: no empty, `.`/`..` or hidden segments,
+/// no absolute paths or backslashes.
 pub fn is_safe_key(key: &str) -> bool {
+    fn safe_segment(seg: &str) -> bool {
+        !seg.is_empty()
+            && !seg.starts_with('.')
+            && seg
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.' | '@' | '+'))
+    }
     !key.is_empty()
         && key.len() <= 200
-        && key
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.' | '@' | '+'))
-        && !key.starts_with('.')
+        && key.split('/').count() <= 4
+        && key.split('/').all(safe_segment)
 }
 
 #[derive(Clone)]
@@ -104,6 +112,11 @@ impl SideloadingStorage for FileStorage {
 
     fn store_data(&self, key: &str, value: &[u8]) -> Result<(), Report> {
         let path = self.path_for(key)?;
+        if let Some(parent) = path.parent()
+            && parent != self.dir.as_path()
+        {
+            create_private_dir(parent).map_err(|e| report!("{e}"))?;
+        }
         write_private_file(&path, value).context("Failed to write data to file")?;
         Ok(())
     }
@@ -300,10 +313,26 @@ mod tests {
     fn file_storage_rejects_traversal() {
         let dir = tempfile::tempdir().unwrap();
         let s = FileStorage::new(dir.path().to_path_buf()).unwrap();
-        for k in ["../x", "a/b", "", ".hidden", "..", "a\\b"] {
+        for k in [
+            "../x", "", ".hidden", "..", "a\\b", "/abs", "a//b", "a/../b", "a/./b", "a/", "a/.k",
+            "a/b/c/d/e",
+        ] {
             assert!(s.store_data(k, b"x").is_err(), "{k:?} should be rejected");
         }
         assert!(is_safe_key("rppairing1.1_file_00008110-001A2B3C"));
+
+        // isideload's certificate identity key: "<sha256 hex of email>/key"
+        let k = "f0e4c04f981312f32df6e12ee2bdf53eadd1c91beb3d2211ac35c8be643c88f5/key";
+        s.store_data(k, b"pem").unwrap();
+        assert_eq!(s.retrieve_data(k).unwrap(), Some(b"pem".to_vec()));
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let sub = dir.path().join(k).parent().unwrap().to_path_buf();
+            assert_eq!(fs::metadata(&sub).unwrap().permissions().mode() & 0o777, 0o700);
+        }
+        s.delete(k).unwrap();
+        assert_eq!(s.retrieve_data(k).unwrap(), None);
     }
 
     #[test]
