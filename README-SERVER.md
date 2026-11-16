@@ -26,7 +26,44 @@ bun install && bun run build              # interface em dist/
 
 Dá para compilar em outra máquina x86_64 e copiar `target/release/iloader-server` + `dist/` para o servidor.
 
-## Instalar no Ubuntu Server
+## Docker (recomendado)
+
+Requisitos no servidor: Docker com Compose e `usbmuxd` instalado no host (`sudo apt install usbmuxd`). Não precisa de Rust nem de bun: tudo compila dentro da imagem.
+
+```sh
+docker compose up -d --build
+docker compose exec iloader cat /data/access_token    # token de acesso
+docker compose logs -f iloader
+```
+
+Como o iPhone chega ao container:
+
+- O `usbmuxd` continua no host, gerenciado pelo udev. Ele cria `/run/usbmuxd` quando o iPhone é conectado e apaga quando é desconectado.
+- Um bind mount só desse arquivo ficaria apontando para o socket antigo. Em vez disso, o sidecar `usbmuxd-bridge` (alpine + socat, usuário `nobody`, `/run` do host só para leitura) repassa o socket por TCP numa rede interna do compose, sem acesso à internet.
+- O container `iloader` usa `USBMUXD_SOCKET_ADDRESS=172.30.57.10:27015` e não recebe USB nem caminhos do host. Ele roda como usuário 10001, com sistema de arquivos read-only, sem capabilities e com `no-new-privileges`.
+- Os registros de pareamento ficam no host, em `/var/lib/lockdown`.
+
+| Volume | Conteúdo |
+| --- | --- |
+| `iloader-data` → `/data` | anisette, pairing, contas, logs, `access_token` |
+| `iloader-cache` → `/cache` | uploads de IPA e IPAs baixados (fora da RAM) |
+
+Variáveis num `.env` ao lado do `docker-compose.yml`:
+
+| Variável | Padrão | Uso |
+| --- | --- | --- |
+| `ILOADER_HOST_BIND` | `127.0.0.1` | interface do host onde a porta é publicada |
+| `ILOADER_PORT` | `8095` | porta no host |
+| `ILOADER_COOKIE_SECURE` | `0` | `1` atrás de HTTPS |
+| `ILOADER_ALLOWED_ORIGINS`, `ILOADER_MAX_UPLOAD_MB`, `ILOADER_UI_LOG_LEVEL` | | ver tabela de configuração |
+
+Para habilitar o salvamento de senha, monte um arquivo de chave (por exemplo `./secret.key:/run/secrets/iloader_key:ro`) e descomente `ILOADER_SECRET_KEY_FILE` no compose.
+
+Atualizar: `git pull && docker compose up -d --build`. Os volumes são preservados.
+
+Acesso do notebook: túnel SSH (`ssh -N -L 8095:127.0.0.1:8095 usuario@servidor` e depois <http://localhost:8095>) ou reverse proxy com TLS. Ver "Acesso seguro pela rede".
+
+## Instalar no Ubuntu Server sem Docker (systemd)
 
 ```sh
 sudo ./deploy/install.sh
