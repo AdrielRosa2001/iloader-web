@@ -52,3 +52,23 @@ Data: 2026-11-16. Branch: `web-headless`.
 3. Senha do Apple ID: **não** salva por padrão. Só é possível salvar se houver chave configurada (`ILOADER_SECRET_KEY_FILE`); aí é cifrada (ChaCha20-Poly1305) em arquivo 0600.
 4. Acesso: token obrigatório + recomendação de túnel SSH ou reverse proxy com TLS (README-SERVER documenta os dois).
 5. Nome do fork: ainda pendente (ver seção 7 do PLAN). O binário se chama `iloader-server` provisoriamente.
+
+## Status das fases (2026-11-16)
+
+| Fase | Status | Verificação |
+| --- | --- | --- |
+| 0 | ok | este arquivo |
+| 1 core | ok | `cargo tree -p iloader-core` sem tauri/keyring/dbus; 7 testes |
+| 2 servidor | ok | 12 testes (auth, upload, busy, emit, WebSocket real); `curl` em `list_devices` devolve erro claro de usbmuxd |
+| 3 frontend | ok | `bun run build`; E2E com Chromium headless: tela de token, token errado, app renderiza, sessão sobrevive a reload, banner ao derrubar o servidor, volta à tela de token após restart, logout |
+| 4 credenciais | ok | senha só com `ILOADER_SECRET_KEY_FILE` (ChaCha20-Poly1305); testes de cifragem/chave errada |
+| 5 segurança | ok | 401 em todas as rotas e no WebSocket; Origin; rate limit; upload só por id |
+| 6 deploy | arquivos prontos | `deploy/` (systemd, env, install.sh). **Não executado num Ubuntu Server real** |
+| 7 docs/testes | ok | `README-SERVER.md`; `cargo test --workspace` verde |
+
+### Pendências
+
+- Testes com hardware/conta Apple (seção 6 do PLAN): nada que toque iPhone ou servidores da Apple foi exercitado.
+- Nome do fork e troca de logos (seção 7 do PLAN): a interface ainda mostra "iloader" e o logo original; o README avisa que é não oficial.
+- `export_pairing_cmd` também existe como `GET /api/pairing/export`; o frontend usa o download.
+- Os logs DEBUG da UI vêm do isideload/idevice; não vi segredos, mas vale revisar os logs depois do primeiro login real.

@@ -24,6 +24,8 @@ Install SideStore (or other apps) and import your pairing file with ease
 
 <img width="1918" height="998" alt="iloader0" src="https://github.com/user-attachments/assets/93cd135d-6d89-46ee-9b9f-12c596806911" />
 
+> **Headless fork:** this branch adds a server + web UI build that runs on a Linux server without a GUI. See [README-SERVER.md](README-SERVER.md) (pt-BR). It is unofficial and not endorsed by the iloader project.
+
 ## How to use
 
 - Install usbmuxd for your platform
